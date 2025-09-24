@@ -7,7 +7,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from main import levy, plot_surface_2d, get_default_bounds  # Import testované funkce a vizualizace
+from main import levy, plot_surface_2d, get_default_bounds  # Import standardní Levy funkce a vizualizace
 
 
 def almost_equal(a: float, b: float, tol: float = 1e-9) -> bool:
@@ -17,38 +17,56 @@ def almost_equal(a: float, b: float, tol: float = 1e-9) -> bool:
     return abs(a - b) <= tol
 
 
+def levy_manual_eval(x_list):
+    """Pomocná funkce: ruční výpočet standardní Levy přes definici (pro ověření testů)."""
+    # w transformace
+    w = [1.0 + (x - 1.0)/4.0 for x in x_list]
+    n = len(w)
+    if n == 0:
+        return 0.0
+    total = math.sin(math.pi * w[0]) ** 2
+    for i in range(0, n-1):
+        wi = w[i]
+        total += (wi - 1.0)**2 * (1.0 + 10.0 * (math.sin(math.pi * wi + 1.0)**2))
+    wn = w[-1]
+    total += (wn - 1.0)**2 * (1.0 + (math.sin(2.0 * math.pi * wn)**2))
+    return total
+
+
 def run_tests() -> bool:
     """
-    Jednoduché testy pro základní funkci Lévy.
+    Testy pro standardní Levy funkci (s w transformací).
     """
     cases = [
-        ([], 0.0),  # prázdný vektor -> 0
-        ([1.0], 0.0),  # globální minimum (1D)
-        ([1.0, 1.0], 0.0),  # globální minimum (2D)
-        # Následují ruční výpočty podle základní definice
-        ([0.0], (math.sin(3*math.pi*0.0))**2 + (0.0 - 1.0)**2 * (1 + math.sin(2*math.pi*0.0)**2)),
-        ([2.0], (math.sin(3*math.pi*2.0))**2 + (2.0 - 1.0)**2 * (1 + math.sin(2*math.pi*2.0)**2)),
-        ([1.0, 2.0],
-        (math.sin(3*math.pi*1.0))**2 + (1.0 - 1.0)**2 * (1 + (math.sin(3*math.pi*1.0 + 1.0))**2) 
-        + (2.0 - 1.0)**2 * (1 + (math.sin(2*math.pi*2.0))**2)
-        ),
+        ([], 0.0),
+        ([1.0], 0.0),               # minimum
+        ([1.0, 1.0], 0.0),           # minimum
+        ([1.0, 1.0, 1.0], 0.0),      # minimum ve 3D
+        ([0.0], levy_manual_eval([0.0])),
+        ([2.0], levy_manual_eval([2.0])),
+        ([0.0, 2.0], levy_manual_eval([0.0, 2.0])),
+        ([1.0, 2.0], levy_manual_eval([1.0, 2.0])),
     ]
 
     passed = True
     for i, (params, expected) in enumerate(cases, start=1):
         result = levy(params)
         ok = almost_equal(result, expected)
-        print(f"Test Lévy {i}: vstup={params} -> výsledek={result}, očekávané={expected} => {'PASS' if ok else 'FAIL'}")
+        print(f"Test Levy {i}: vstup={params} -> výsledek={result}, očekávané={expected} => {'PASS' if ok else 'FAIL'}")
         if not ok:
             passed = False
 
-    # Kontrola minima v bodě (1,1,1)
-    ones3 = [1.0, 1.0, 1.0]
-    val_ones3 = levy(ones3)
-    ok = almost_equal(val_ones3, 0.0)
-    print(f"Test Lévy (minimum v (1,1,1)): x={ones3} -> f(x)={val_ones3} => {'PASS' if ok else 'FAIL'}")
-    if not ok:
-        passed = False
+    # Extra: náhodná kontrola konzistence pro několik náhodných bodů (deterministicky)
+    import random
+    rng = random.Random(123)
+    for j in range(3):
+        trial = [rng.uniform(-5, 5), rng.uniform(-5, 5)]
+        expected = levy_manual_eval(trial)
+        result = levy(trial)
+        ok = almost_equal(result, expected, tol=1e-9)
+        print(f"Kontrola náhodný bod {j+1}: x={trial} -> f={result}, manuál={expected} => {'PASS' if ok else 'FAIL'}")
+        if not ok:
+            passed = False
 
     return passed
 
@@ -56,7 +74,7 @@ def run_tests() -> bool:
 if __name__ == "__main__":
     # Zobrazíme 3D výřez pro lepší představu o tvaru funkce
     bounds = get_default_bounds("levy", 2)
-    plot_surface_2d(levy, bounds_2d=bounds, num_points=80, title="Lévy – 2D výřez")
+    plot_surface_2d(levy, bounds_2d=bounds, num_points=160, title="Levy – standardní definice")
     print("Spouštím testy pro Lévy...\n")
     success = run_tests()
     if success:

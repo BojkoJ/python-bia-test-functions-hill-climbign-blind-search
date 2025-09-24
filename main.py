@@ -2,41 +2,47 @@ import numpy as np
 import math
 from typing import Callable, List, Tuple, Optional
 
-# TODO: Vizualizace 3D
-# TODO: Pro každou funkci jiné hranice (výřez z funkce) (lower a upper bound)
-# Funkce dostane 2 parametry, vyplivne třetí
-# TODO: Dělat tak, ať se dají ty parametry vytáhnou ven
-# Použít numpy na usnadnění implementace a vizualizaci pomocí matplotlib, taky lze použít na většinu výpočtu
-# Snažit se vyhnout čistému iterováni v Pythonu
-# Ten algoritmus co prohledává prostor jako takový (např. blind search) nesmí vyletět mimo hranice, když narazí na hranici - prochází okolo hranice a ne přes ni
-# Nesmí prostě vyletět mimo ten výřez funkce
-# Volit hranice tak, aby každá funkce vypadala ve vizualizaci jinak (jiný výřez u funkcí)
-# Všechny solutiony pro 3 dimenze
-
-# ------------------------------------------------------------
-# Pomocné nástroje pro hranice, mřížku a 3D vizualizaci
-# ------------------------------------------------------------
-
-# Výchozí hranice (výřezy) pro 2D vizualizaci (X,Y). Voleny tak, aby byl tvar zajímavý a odlišný.
+# Výchozí hranice (výřezy) pro 2D vizualizaci (X,Y).
 DEFAULT_BOUNDS_2D = {
-    "sphere": (-5.0, 5.0),          # pro obě osy stejné
-    "schwefel": (-500.0, 500.0),    # klasická doména (pozor na měřítko, je hrubší)
-    "rosenbrock": (-2.0, 2.0),      # úzké údolí, viditelné při menším rozsahu
+    "sphere": (-5.0, 5.0),          
+    "schwefel": (-500.0, 500.0),    
+    "rosenbrock": (-5.0, 10.0),   
     "rastrigin": (-5.12, 5.12),
     "griewank": (-6.0, 6.0),
     "levy": (-3.0, 3.0),
-    "michalewicz": (0.0, float(math.pi)),  # [0, π]
+    "michalewicz": (0.0, float(math.pi)), 
     "zakharov": (-5.0, 5.0),
-    "ackley": (-5.0, 5.0),
+    "ackley": (-32.768, 32.768),
 }
 
 def get_default_bounds(func_name: str, dim: int = 2) -> List[Tuple[float, float]]:
-    """
-    Vrátí výchozí hranice pro danou funkci a dimenzi.
-    Pro 2D vrací [(low, high), (low, high)]; pro vyšší dimenze opakuje tentýž interval.
-    """
-    low, high = DEFAULT_BOUNDS_2D.get(func_name.lower(), (-5.0, 5.0))
-    return [(low, high) for _ in range(dim)]
+        """
+        Vrátí seznam hranic pro každou dimenzi.
+
+        Parametry:
+            func_name : název funkce
+            dim       : kolik dimenzí (např. 2 > chceme dvě dvojice hranic).
+
+        Návrat:
+            list dvojic (low, high). Každá dvojice jsou float hodnoty dolní a horní meze.
+        """
+        # Převedeme název na malá písmena
+        name_lower = func_name.lower()
+
+        # Zkusíme v tabulce DEFAULT_BOUNDS_2D najít položku podle klíče name_lower, pokud není dáme default
+        bounds_pair = DEFAULT_BOUNDS_2D.get(name_lower, (-5.0, 5.0))
+
+        # Rozbalíme dvojici (low, high) do dvou proměnných pro přehlednost.
+        # Příklad: bounds_pair = (-5.0, 5.0) -> low = -5.0, high = 5.0
+        low = bounds_pair[0]
+        high = bounds_pair[1]
+
+        result: List[Tuple[float, float]] = []
+
+        for i in range(dim):
+                result.append((low, high))
+
+        return result
 
 
 def generate_grid(bounds_2d: List[Tuple[float, float]], num_points: int = 100):
@@ -44,24 +50,40 @@ def generate_grid(bounds_2d: List[Tuple[float, float]], num_points: int = 100):
     Vytvoří mřížku (X, Y) v zadaných 2D hranicích. Každá z os má `num_points` vzorků.
     """
     (x_min, x_max), (y_min, y_max) = bounds_2d
-    x = np.linspace(x_min, x_max, num_points)
-    y = np.linspace(y_min, y_max, num_points)
+    
+    # np.linspace vytvoří jednorozměrné pole s rovnoměrně rozloženými body
+    # mezi zadanými hranicemi. Např. linspace(0, 10, 5) → [0, 2.5, 5, 7.5, 10]
+    x = np.linspace(x_min, x_max, num_points) # Vytvoří num_points bodů na x-ose
+    y = np.linspace(y_min, y_max, num_points) # Vytvoří num_points bodů na y-ose
+    
+    # np.meshgrid vezme dva 1D vektory a vytvoří z nich 2D mřížku souřadnic
+    # X obsahuje x-souřadnice pro každý bod mřížky
+    # Y obsahuje y-souřadnice pro každý bod mřížky
+    # Výsledek: každý bod [X[i,j], Y[i,j]] reprezentuje jeden bod v 2D mřížce
     X, Y = np.meshgrid(x, y)
     return X, Y
 
-
 def evaluate_surface_2d(objective: Callable[[List[float]], float],
-                        bounds_2d: List[Tuple[float, float]],
-                        num_points: int = 100):
-    """
-    Vyhodnotí funkci na 2D mřížce: funkce dostane 2 parametry (x, y) a vrátí třetí (z).
-    Používáme numpy.vectorize pro čitelnost (není to nejrychlejší, ale je přehledné).
-    """
-    X, Y = generate_grid(bounds_2d, num_points)
-    # vektorová aplikace objective na páry (x,y)
-    f_vec = np.vectorize(lambda x, y: objective([float(x), float(y)]))
-    Z = f_vec(X, Y)
-    return X, Y, Z
+                            bounds_2d: List[Tuple[float, float]],
+                            num_points: int = 100):
+        """
+        Vyhodnotí funkci na 2D mřížce: funkce dostane 2 parametry (x, y) a vrátí třetí (z).
+        Používáme numpy.vectorize pro čitelnost.
+        """
+        # Vytvoříme 2D mřížku bodů (X, Y) v zadaných hranicích
+        X, Y = generate_grid(bounds_2d, num_points)
+        
+        # np.vectorize umožňuje aplikovat obyčejnou funkci na numpy pole element po elementu
+        # lambda x, y: objective([float(x), float(y)]) převede každou dvojici (x,y) z mřížky
+        # na seznam [x, y] a předá ho cílové funkci
+        f_vec = np.vectorize(lambda x, y: objective([float(x), float(y)]))
+        
+        # Aplikujeme vektorizovanou funkci na celé pole X a Y najednou
+        # Výsledek Z obsahuje hodnotu funkce pro každý bod mřížky
+        # Z[i,j] = objective([X[i,j], Y[i,j]])
+        Z = f_vec(X, Y)
+        
+        return X, Y, Z
 
 
 def plot_surface_2d(objective: Callable[[List[float]], float],
@@ -72,51 +94,39 @@ def plot_surface_2d(objective: Callable[[List[float]], float],
     Jednoduchá 3D vizualizace povrchu funkce (2 vstupy -> 3D graf X,Y,Z).
     Importujeme matplotlib až zde, aby to nebylo povinné při běžných výpočtech.
     """
-    if bounds_2d is None:
-        bounds_2d = get_default_bounds("sphere", 2)  # výchozí: sphere rozsah
+    if bounds_2d is None:                               # Pokud uživatel nezadal vlastní hranice tak default
+        bounds_2d = get_default_bounds("sphere", 2)
 
+    # Vyhodnotíme funkci na pravidelné mřížce bodů (dostaneme X, Y souřadnice a Z hodnoty funkce)
     X, Y, Z = evaluate_surface_2d(objective, bounds_2d, num_points)
 
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, potřebné pro 3D
+    import matplotlib.pyplot as plt                      # Import knihovny pro vykreslování
 
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection='3d')
+    fig = plt.figure(figsize=(8, 6))                     # Vytvoří novou figuru s danou velikostí
+    ax = fig.add_subplot(111, projection='3d')           # Přidá 3D subplot
 
+    # Samotné vykreslení 3D povrchu (surface). Jednotlivé parametry určují barvy a mřížku.
     ax.plot_surface(
-        X,
-        Y,
-        Z,
-        cmap='jet',
-        edgecolor='k',     # černé hrany (edges)
-        linewidth=0.2,     # tenké čáry hran
-        antialiased=True,  
-        rstride=1,         # vykreslit každou řádku mřížky
-        cstride=1,         # vykreslit každý sloupec mřížky
+        X,                                             # 2D pole x souřadnic
+        Y,                                             # 2D pole y souřadnic
+        Z,                                             # 2D pole hodnot funkce f(x,y)
+        cmap='jet',                                    # Barevná mapa
+        edgecolor='k',                                 # Černé hrany každého malého polygonu
+        linewidth=0.2,                                 # Tloušťka čar hran
+        antialiased=True,                              # Vyhlazení hran pro hezčí vzhled
+        rstride=1,                                     # Vykreslit každou řádku mřížky
+        cstride=1,                                     # Vykreslit každý sloupec mřížky
     )
-    ax.set_xlabel('x1')
-    ax.set_ylabel('x2')
-    ax.set_zlabel('f(x)')
-    if title:
-        ax.set_title(title)
-    plt.tight_layout()
-    plt.show()
+    
+    ax.set_xlabel('x1')                                 # Popisek osy X
+    ax.set_ylabel('x2')                                 # Popisek osy Y
+    ax.set_zlabel('f(x)')                               # Popisek osy Z
+    
+    if title:                                           # Pokud je předán titulek nastavíme ho nad graf
+        ax.set_title(title)                             
 
-
-def find_min_on_grid(objective: Callable[[List[float]], float],
-                     bounds_2d: List[Tuple[float, float]],
-                     num_points: int = 100) -> Tuple[float, float, float]:
-    """
-    Najde přibližné minimum na 2D mřížce a vrátí (x, y, z).
-    Je to hrubá metoda na odhad – přesnost závisí na `num_points`.
-    """
-    X, Y, Z = evaluate_surface_2d(objective, bounds_2d, num_points)
-    # Najdeme index minima v Z a přemapujeme zpět na souřadnice X,Y
-    idx = np.unravel_index(np.argmin(Z), Z.shape)
-    x_best = float(X[idx])
-    y_best = float(Y[idx])
-    z_best = float(Z[idx])
-    return x_best, y_best, z_best
+    plt.tight_layout()                                  # Úprava rozložení (aby se popisky nepřekrývaly)
+    plt.show()                                          # Zobrazení okna s grafem
 
 
 def visualize_blind_search_2d(
@@ -130,12 +140,6 @@ def visualize_blind_search_2d(
 ):
     """
     Vizualizace slepého (náhodného) vyhledávání v 2D na 3D povrchu funkce.
-
-    Co uvidíte:
-    - Pevný 3D povrch funkce f(x1, x2)
-    - V každé generaci se vykreslí náhodní kandidáti (malé tečky)
-    - Nejlepší nalezený bod (globálně) je zvýrazněn větší červenou tečkou
-    - Průběh nejlepších bodů v čase je zobrazen jako červená křivka (trajektorie)
 
     Parametry
     ---------
@@ -154,19 +158,18 @@ def visualize_blind_search_2d(
     pause_seconds : float
         Krátká pauza mezi generacemi (ovlivní rychlost animace).
     """
-    import random
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    import random                                          # Modul random pro náhodné body
+    import matplotlib.pyplot as plt                        # Matplotlib pro vykreslení
 
-    if bounds_2d is None:
-        bounds_2d = get_default_bounds("sphere", 2)
+    if bounds_2d is None:                                  # Pokud nejsou zadané hranice, tak default
+        bounds_2d = get_default_bounds("sphere", 2)        
 
-    # Připravíme povrch funkce
+    # Předpočítáme mřížku a hodnoty funkce, aby byl povrch statický (jen body se mění)
     X, Y, Z = evaluate_surface_2d(objective, bounds_2d, num_points=num_points)
 
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_surface(
+    fig = plt.figure(figsize=(8, 6))                        # Nové okno (figure)
+    ax = fig.add_subplot(111, projection='3d')              # 3D osa
+    surf = ax.plot_surface(                                 # Vykreslení povrchu
         X,
         Y,
         Z,
@@ -177,19 +180,19 @@ def visualize_blind_search_2d(
         rstride=1,
         cstride=1,
     )
-    ax.set_xlabel('x1')
-    ax.set_ylabel('x2')
-    ax.set_zlabel('f(x)')
-    ax.set_title('Vizualizace blind search (2D → 3D)')
+    ax.set_xlabel('x1')                                     # Popisek x
+    ax.set_ylabel('x2')                                     # Popisek y
+    ax.set_zlabel('f(x)')                                   # Popisek z
+    ax.set_title('Vizualizace blind search (2D → 3D)')      # Titulek grafu
 
-    (x_min, x_max), (y_min, y_max) = bounds_2d
+    (x_min, x_max), (y_min, y_max) = bounds_2d              # Rozbalení hranic pro pohodlí
 
-    rng = random.Random(seed)
+    rng = random.Random(seed)                               # Deterministický random (pokud seed)
 
-    def random_point_2d():
-        x = rng.uniform(x_min, x_max)
-        y = rng.uniform(y_min, y_max)
-        # clamp, pro jistotu
+    def random_point_2d():                                  # Funkce vrátí náhodný bod (x,y) v mezích
+        x = rng.uniform(x_min, x_max)                       # Náhodné x
+        y = rng.uniform(y_min, y_max)                       # Náhodné y
+        # Ořez (clamp) pro jistotu, kdyby numericky přesáhlo
         if x < x_min:
             x = x_min
         if x > x_max:
@@ -200,64 +203,76 @@ def visualize_blind_search_2d(
             y = y_max
         return x, y
 
-    # Náhodný start
-    best_x, best_y = random_point_2d()
-    best_f = objective([best_x, best_y])
+    # Počáteční (náhodný) nejlepší bod
+    best_x, best_y = random_point_2d()                      # Start pozice
+    best_f = objective([best_x, best_y])                    # Jeho hodnota funkce
 
-    # Umělců (artists) několik: kandidáti, nejlepší bod, trajektorie
-    candidates_scatter = ax.scatter([], [], [], s=10, c='k', alpha=0.6, depthshade=False)
-    best_scatter = ax.scatter([best_x], [best_y], [best_f], s=50, c='red', depthshade=False)
-    path_x = [best_x]
-    path_y = [best_y]
-    path_z = [best_f]
-    path_line, = ax.plot(path_x, path_y, path_z, color='red', linewidth=1.5)
+    # Předpřipravené grafické objekty (artists) pro efektivní aktualizaci
+    candidates_scatter = ax.scatter([], [], [],             # Scatter kandidátů (prázdný na začátku)
+                                     s=10, c='k', alpha=0.6, depthshade=False)
+    best_scatter = ax.scatter([best_x], [best_y], [best_f],  # Scatter nejlepšího bodu
+                               s=50, c='red', depthshade=False)
+    path_x = [best_x]                                       # Historie X pro trajektorii
+    path_y = [best_y]                                       # Historie Y
+    path_z = [best_f]                                       # Historie f(x)
+    path_line, = ax.plot(path_x, path_y, path_z,            # Linie trajektorie
+                          color='red', linewidth=1.5)
 
-    plt.tight_layout()
-    plt.pause(0.1)  # malá pauza, aby se figura správně inicializovala
+    plt.tight_layout()                                      # Úprava rozložení
+    plt.pause(0.1)                                          # Malá pauza pro inicializaci GUI
 
-    g = 0
-    while g < g_max:
-        # Vygenerujeme novou populaci kandidátů
-        cand_x = []
-        cand_y = []
-        cand_z = []
-        for _ in range(npop):
-            x, y = random_point_2d()
-            z = objective([x, y])
-            cand_x.append(x)
-            cand_y.append(y)
-            cand_z.append(z)
+    g = 0                                                   # Počítadlo generací
+    while g < g_max:                                        # Hlavní smyčka přes generace
+        cand_x = []                                         # Seznam x kandidátů
+        cand_y = []                                         # Seznam y kandidátů
+        cand_z = []                                         # Seznam f(x) hodnot
+        for _ in range(npop):                               # Vygeneruj populaci
+            x, y = random_point_2d()                        # Náhodný bod
+            z = objective([x, y])                           # Vyhodnocení funkce
+            cand_x.append(x)                                # Ulož x
+            cand_y.append(y)                                # Ulož y
+            cand_z.append(z)                                # Ulož f(x)
 
-        # Aktualizace kandidátů na grafu
-        candidates_scatter._offsets3d = (cand_x, cand_y, cand_z)
+        candidates_scatter._offsets3d = (cand_x, cand_y, cand_z)  # Aktualizace scatteru kandidátů
 
-        # Najdeme nejlepší v této generaci
-        best_idx = 0
-        best_gen_f = cand_z[0]
-        for i in range(1, len(cand_z)):
-            if cand_z[i] < best_gen_f:
-                best_gen_f = cand_z[i]
-                best_idx = i
+        best_idx = 0                                        # Index nejlepšího kandidáta v generaci
+        best_gen_f = cand_z[0]                              # Hodnota nejlepšího kandidáta
+        for i in range(1, len(cand_z)):                     # Projdeme ostatní kandidáty
+            if cand_z[i] < best_gen_f:                      # Lepší nalezen
+                best_gen_f = cand_z[i]                      # Aktualizace nejlepší hodnoty
+                best_idx = i                                # Uložení indexu
 
-        # Pokud zlepšuje globální nejlepší, zapíšeme a vykreslíme
-        if best_gen_f < best_f:
-            best_x = cand_x[best_idx]
-            best_y = cand_y[best_idx]
-            best_f = best_gen_f
-            # posuneme značku nejlepšího bodu
-            best_scatter._offsets3d = ([best_x], [best_y], [best_f])
-            # aktualizujeme trajektorii
-            path_x.append(best_x)
+        if best_gen_f < best_f:                             # Zlepšení globálního minima?
+            best_x = cand_x[best_idx]                       # Aktualizace nejlepšího x
+            best_y = cand_y[best_idx]                       # Aktualizace nejlepšího y
+            best_f = best_gen_f                             # Aktualizace nejlepší hodnoty
+            best_scatter._offsets3d = ([best_x],            # Posun markeru nejlepšího bodu
+                                       [best_y],
+                                       [best_f])
+            path_x.append(best_x)                           # Uložení historie (trajektorie)
             path_y.append(best_y)
             path_z.append(best_f)
-            path_line.set_data(path_x, path_y)
-            path_line.set_3d_properties(path_z)
+            path_line.set_data(path_x, path_y)              # Aktualizace čáry (x,y)
+            path_line.set_3d_properties(path_z)             # Aktualizace čáry (z)
 
-        plt.pause(pause_seconds)
-        g += 1
+        plt.pause(pause_seconds)                            # Pauza pro animaci
+        g += 1                                              # Další generace
 
-    # Na závěr malé přiblížení a zobrazení
-    plt.show()
+    best_scatter.remove()                                   # Odstraníme původní marker nejlepšího bodu
+    best_scatter = ax.scatter([best_x], [best_y], [best_f], # Vykreslíme zvýrazněný finální bod
+                               s=120, c='lime', edgecolor='k', linewidth=0.6, depthshade=False)
+    msg = f"KONEC: nejlepší bod = ({best_x:.4f}, {best_y:.4f}), f = {best_f:.6g}"  # Textová zpráva
+    
+    print(msg)                                              # Výpis do konzole
+    
+    ax.text2D(0.02, 0.95, msg,                              # Text také do grafu (2D souřadnice v ploše figury)
+              transform=ax.transAxes,
+              fontsize=9,
+              color='lime',
+              bbox=dict(facecolor='black', alpha=0.3, pad=4))
+    
+    plt.draw()                                              # Překreslení obrázku
+    plt.show()                                              # Zobrazení finální podoby
 
 # Jednotlivé testovací funkce:
 
@@ -411,41 +426,51 @@ def griewank(params):
 
 
 def levy(params):
-    """
-    Definice pro n-rozměrný vektor x:
-        f(x) = sin^2(3π x_1)
-               + sum_{i=1..n-1} (x_i - 1)^2 * (1 + sin^2(3π x_i + 1))
-               + (x_n - 1)^2 * (1 + sin^2(2π x_n))
+    r"""
+    Standardní (vícerozměrná) Levy funkce.
 
-    - Obvyklá doména: x_i v intervalu [-10, 10]
-    - Globální minimum: x* = (1, ..., 1) s hodnotou f(x*) = 0
+    Definice:
+        Nejprve se provede transformace
+            w_i = 1 + (x_i - 1) / 4
+
+        f(x) = sin^2(π w_1)
+               + Σ_{i=1..n-1} (w_i - 1)^2 * [ 1 + 10 * sin^2(π w_i + 1) ]
+               + (w_n - 1)^2 * [ 1 + sin^2(2π w_n) ]
+
+    Vlastnosti:
+        - Doména obvykle x_i ∈ [-10, 10]
+        - Globální minimum: x* = (1, ..., 1) → f(x*) = 0
 
     Parametry
     ---------
-    params : seznam nebo jiné pole čísel
+    params : list[float]
         Vstupní vektor x.
 
     Návratová hodnota
     -----------------
     float
-        Hodnota funkce Lévy pro zadané `params`.
+        Hodnota Levy funkce pro zadané `params`.
     """
     n = len(params)
     if n == 0:
         return 0.0
 
-    # První člen: sin^2(3π x_1)
-    x1 = params[0]
-    total = (math.sin(3.0 * math.pi * x1)) ** 2
+    # Transformace w_i
+    w = []
+    for x in params:
+        w.append(1.0 + (x - 1.0) / 4.0)
 
-    # Prostřední součet: i = 1..n-1 (indexy 0..n-2)
+    # První člen
+    total = math.sin(math.pi * w[0]) ** 2
+
+    # Prostřední součet (i = 1..n-1 => indexy 0..n-2)
     for i in range(0, n - 1):
-        xi = params[i]
-        total += (xi - 1.0) * (xi - 1.0) * (1.0 + (math.sin(3.0 * math.pi * xi + 1.0) ** 2))
+        wi = w[i]
+        total += (wi - 1.0) * (wi - 1.0) * (1.0 + 10.0 * (math.sin(math.pi * wi + 1.0) ** 2))
 
-    # Poslední člen: (x_n - 1)^2 * (1 + sin^2(2π x_n))
-    xn = params[-1]
-    total += (xn - 1.0) * (xn - 1.0) * (1.0 + (math.sin(2.0 * math.pi * xn) ** 2))
+    # Poslední člen
+    wn = w[-1]
+    total += (wn - 1.0) * (wn - 1.0) * (1.0 + (math.sin(2.0 * math.pi * wn) ** 2))
 
     return float(total)
 
@@ -566,7 +591,7 @@ def blind_search(
     seed: Optional[int] = None,
 ) -> Tuple[List[float], float]:
     """
-    Slepé (náhodné) vyhledávání pro minimalizační úlohu.
+    Blind saerch pro minimalizační úlohu.
 
     Popis:
     - vygenerujeme náhodné počáteční řešení x_b
@@ -639,3 +664,142 @@ def blind_search(
         g += 1
 
     return best_x, float(best_f)
+
+
+def hill_climbing(
+    objective: Callable[[List[float]], float],
+    bounds: List[Tuple[float, float]],
+    max_iter: int,
+    step_sigma: float = 0.1,
+    neighbours: int = 20,
+    seed: Optional[int] = None,
+    early_stop_no_improve: int = 50,
+    visualize: bool = False,
+    pause_seconds: float = 0.5,
+    num_points: int = 160,
+    surface_alpha: float = 1.0,
+) -> Tuple[List[float], float]:
+    """
+    Hill Climbing (minimalizace) + VOLITELNÁ vizualizace pro 2D.
+
+    Nové chování (požadavek uživatele):
+      - Samotný algoritmus proběhne celý předem.
+      - Uložíme pouze kroky, kdy došlo ke ZLEPŠENÍ (seznam `path`).
+      - Až poté spustíme animaci: zelený konečný bod je vidět od začátku
+        a červený bod prochází postupně uložené kroky.
+
+        Dodatečné parametry:
+      visualize : bool      Má-li se (u 2D) zobrazit animace po doběhu algoritmu.
+      pause_seconds : float Pauza mezi snímky animace.
+      num_points : int      Hustota mřížky pro povrch při vykreslení.
+            surface_alpha : float Průhlednost povrchu (1.0 = neprůhledný, např. 0.35 = částečně průsvitný).
+    """
+    import random
+    rng = random.Random(seed)
+
+    dim = len(bounds)
+
+    def random_vector():
+        v = []
+        for low, high in bounds:
+            value = rng.uniform(low, high)
+            if value < low:
+                value = low
+            if value > high:
+                value = high
+            v.append(value)
+        return v
+
+    # --- 1) Náhodný start a základní proměnné ---
+    current = random_vector()
+    current_f = objective(current)
+    best_x = list(current)
+    best_f = float(current_f)
+
+    # Uložíme první stav (start) do path (list zlepšení)
+    path: List[Tuple[List[float], float]] = [(list(current), current_f)]
+
+    it = 0
+    no_improve = 0
+    while it < max_iter:
+        improved = False
+        # 2) Generování sousedů
+        for _ in range(neighbours):
+            neighbor = []
+            for i in range(dim):
+                low, high = bounds[i]
+                step = rng.gauss(0.0, step_sigma)
+                cand = current[i] + step
+                if cand < low:
+                    cand = low
+                if cand > high:
+                    cand = high
+                neighbor.append(cand)
+
+            f_nei = objective(neighbor)
+            if f_nei < current_f:  # našli jsme zlepšení
+                current = neighbor
+                current_f = f_nei
+                improved = True
+                if current_f < best_f:
+                    best_x = list(current)
+                    best_f = float(current_f)
+                path.append((list(current), current_f))  # uložíme zlepšení
+
+        if improved:
+            no_improve = 0
+        else:
+            no_improve += 1
+
+        if early_stop_no_improve > 0 and no_improve >= early_stop_no_improve:
+            break
+
+        it += 1
+
+    # --- 3) Vizualizace (jen pokud 2D a visualize=True) ---
+    if visualize and dim == 2:
+        import matplotlib.pyplot as plt
+
+        # Vytvoříme povrch: použijeme pouze první dvě souřadnice
+        bounds_2d = [(bounds[0][0], bounds[0][1]), (bounds[1][0], bounds[1][1])]
+        X, Y, Z = evaluate_surface_2d(objective, bounds_2d, num_points=num_points)
+
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        # Povrch – můžeme nastavit průhlednost (alpha) pro lepší viditelnost bodů
+        alpha_val = surface_alpha
+        if alpha_val < 0.0:
+            alpha_val = 0.0
+        if alpha_val > 1.0:
+            alpha_val = 1.0
+        ax.plot_surface(
+            X, Y, Z,
+            cmap='jet', edgecolor='k', linewidth=0.2, antialiased=True,
+            rstride=1, cstride=1, alpha=alpha_val,
+        )
+        ax.set_xlabel('x1')
+        ax.set_ylabel('x2')
+        ax.set_zlabel('f(x)')
+        ax.set_title('Hill Climbing – animace (předpočítaná cesta)')
+
+        # Zelený finální bod (statický, viditelný hned od začátku)
+        ax.scatter([best_x[0]], [best_x[1]], [best_f], s=140, c='lime', edgecolor='k', linewidth=0.6, depthshade=False)
+
+        # Červený pohyblivý bod (začíná v prvním stavu path)
+        first_state = path[0]
+        moving = ax.scatter([first_state[0][0]], [first_state[0][1]], [first_state[1]], s=60, c='red', depthshade=False)
+        plt.tight_layout()
+        plt.pause(0.6)  # chvilka na prohlédnutí startu
+
+        # Animace přes uložené zlepšovací kroky
+        for state, value in path[1:]:
+            moving._offsets3d = ([state[0]], [state[1]], [value])
+            plt.pause(pause_seconds)
+
+        msg = f"HILL CLIMBING HOTOVO: best=({best_x[0]:.4f}, {best_x[1]:.4f}), f={best_f:.6g}, kroku={len(path)}"
+        print(msg)
+        ax.text2D(0.02, 0.94, msg, transform=ax.transAxes, fontsize=9, color='lime',
+                  bbox=dict(facecolor='black', alpha=0.3, pad=4))
+        plt.show()
+
+    return best_x, best_f

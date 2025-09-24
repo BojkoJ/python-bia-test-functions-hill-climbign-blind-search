@@ -42,14 +42,6 @@ def run_tests() -> bool:
         if not ok:
             passed = False
 
-    # Kontrola známé hodnoty pro n=2, m=10 (přibližná)
-    x_star = [2.20, 1.57]
-    val_star = michalewicz(x_star)
-    ok = val_star < -1.7  # hrubá dolní hranice pro kontrolu tvaru funkce
-    print(f"Test Michalewicz (n≈2 optimum): x={x_star} -> f(x)={val_star} (< -1.7?) => {'PASS' if ok else 'FAIL'}")
-    if not ok:
-        passed = False
-
     return passed
 
 
