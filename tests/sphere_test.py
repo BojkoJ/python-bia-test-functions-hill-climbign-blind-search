@@ -1,9 +1,6 @@
-import sys  # Modul pro práci s běžícím programem (např. návratové kódy, sys.path)
-import os   # Modul pro práci s cestami a adresáři
+import sys  
+import os  
 
-# Chceme importovat funkci `sphere` ze souboru `main.py`, který je o složku výše.
-# Když spustíme tento test přímo (python tests/sphere_test.py), Pythonu musíme pomoci najít `main.py`.
-# Následující řádky spočítají cestu ke kořeni projektu a přidají ji do vyhledávací cesty modulů (sys.path).
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)  # Díky tomu bude `import main` fungovat i při spuštění ze složky tests

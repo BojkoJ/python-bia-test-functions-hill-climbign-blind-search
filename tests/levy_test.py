@@ -1,5 +1,5 @@
-import sys  # Modul Pythonu pro práci s běžícím programem (např. návratové kódy, sys.path)
-import os   # Modul Pythonu pro práci s cestami a adresáři
+import sys 
+import os  
 import math
 
 # Nastavení cesty pro import z kořene projektu

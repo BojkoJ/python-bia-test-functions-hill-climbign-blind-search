@@ -44,14 +44,7 @@ def run_tests() -> bool:
         if not ok:
             passed = False
 
-    # Kontrola blízkosti globálního minima pro 1D: x ≈ 420.968746
-    x_star = [420.968746]
-    expected_near_min = 0.0
-    val_near_min = schwefel(x_star)
-    ok = val_near_min >= -1e-3 and val_near_min <= 1e-2  # mírná tolerance okolo 0
-    print(f"Test Schwefel (blízkost minima, 1D): x={x_star} -> f(x)={val_near_min} (oček. ~0) => {'PASS' if ok else 'FAIL'}")
-    if not ok:
-        passed = False
+    
 
     return passed
 

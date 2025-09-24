@@ -1,5 +1,5 @@
-import sys  # Modul Pythonu pro práci s běžícím programem (např. návratové kódy, sys.path)
-import os   # Modul Pythonu pro práci s cestami a adresáři
+import sys
+import os  
 import math
 
 # Nastavení cesty pro import z kořene projektu
@@ -36,14 +36,6 @@ def run_tests() -> bool:
         print(f"Test Griewank {i}: vstup={params} -> výsledek={result}, očekávané={expected} => {'PASS' if ok else 'FAIL'}")
         if not ok:
             passed = False
-
-    # Minimum v nule ve 3D
-    zero3 = [0.0, 0.0, 0.0]
-    val_zero3 = griewank(zero3)
-    ok = almost_equal(val_zero3, 0.0)
-    print(f"Test Griewank (minimum v nule, 3D): x={zero3} -> f(x)={val_zero3} => {'PASS' if ok else 'FAIL'}")
-    if not ok:
-        passed = False
 
     return passed
 

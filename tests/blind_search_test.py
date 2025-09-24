@@ -1,6 +1,5 @@
 import sys
 import os
-import math
 
 # Nastavení cesty pro import z kořene projektu
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

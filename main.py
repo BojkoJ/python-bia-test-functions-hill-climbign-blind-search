@@ -139,7 +139,7 @@ def visualize_blind_search_2d(
     pause_seconds: float = 0.05,
 ):
     """
-    Vizualizace slepého (náhodného) vyhledávání v 2D na 3D povrchu funkce.
+    # Vizualizace blind search v 2D na 3D povrchu funkce.
 
     Parametry
     ---------
@@ -158,7 +158,7 @@ def visualize_blind_search_2d(
     pause_seconds : float
         Krátká pauza mezi generacemi (ovlivní rychlost animace).
     """
-    import random                                          # Modul random pro náhodné body
+    import random                                          
     import matplotlib.pyplot as plt                        # Matplotlib pro vykreslení
 
     if bounds_2d is None:                                  # Pokud nejsou zadané hranice, tak default
@@ -192,15 +192,7 @@ def visualize_blind_search_2d(
     def random_point_2d():                                  # Funkce vrátí náhodný bod (x,y) v mezích
         x = rng.uniform(x_min, x_max)                       # Náhodné x
         y = rng.uniform(y_min, y_max)                       # Náhodné y
-        # Ořez (clamp) pro jistotu, kdyby numericky přesáhlo
-        if x < x_min:
-            x = x_min
-        if x > x_max:
-            x = x_max
-        if y < y_min:
-            y = y_min
-        if y > y_max:
-            y = y_max
+
         return x, y
 
     # Počáteční (náhodný) nejlepší bod
@@ -218,7 +210,7 @@ def visualize_blind_search_2d(
     path_line, = ax.plot(path_x, path_y, path_z,            # Linie trajektorie
                           color='red', linewidth=1.5)
 
-    plt.tight_layout()                                      # Úprava rozložení
+    plt.tight_layout()                                      
     plt.pause(0.1)                                          # Malá pauza pro inicializaci GUI
 
     g = 0                                                   # Počítadlo generací
@@ -682,13 +674,13 @@ def hill_climbing(
     """
     Hill Climbing (minimalizace) + VOLITELNÁ vizualizace pro 2D.
 
-    Nové chování (požadavek uživatele):
+    Chování:
       - Samotný algoritmus proběhne celý předem.
       - Uložíme pouze kroky, kdy došlo ke ZLEPŠENÍ (seznam `path`).
       - Až poté spustíme animaci: zelený konečný bod je vidět od začátku
         a červený bod prochází postupně uložené kroky.
 
-        Dodatečné parametry:
+    Dodatečné parametry:
       visualize : bool      Má-li se (u 2D) zobrazit animace po doběhu algoritmu.
       pause_seconds : float Pauza mezi snímky animace.
       num_points : int      Hustota mřížky pro povrch při vykreslení.
@@ -699,10 +691,11 @@ def hill_climbing(
 
     dim = len(bounds)
 
+    # Pomocná funkce: vygeneruje jeden náhodný vektor v mezích
     def random_vector():
         v = []
         for low, high in bounds:
-            value = rng.uniform(low, high)
+            value = rng.uniform(low, high) 
             if value < low:
                 value = low
             if value > high:
@@ -710,7 +703,7 @@ def hill_climbing(
             v.append(value)
         return v
 
-    # --- 1) Náhodný start a základní proměnné ---
+    # 1) Náhodný start a základní proměnné 
     current = random_vector()
     current_f = objective(current)
     best_x = list(current)
@@ -756,7 +749,7 @@ def hill_climbing(
 
         it += 1
 
-    # --- 3) Vizualizace (jen pokud 2D a visualize=True) ---
+    # 3) Vizualizace (jen pokud 2D a visualize=True)
     if visualize and dim == 2:
         import matplotlib.pyplot as plt
 
