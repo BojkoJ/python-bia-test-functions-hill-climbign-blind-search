@@ -1,7 +1,7 @@
 # BIA – Cvičení 1 a 2 (Biologicky inspirované algoritmy)
 
 Tento repozitář obsahuje řešení 1. a 2. cvičení z předmětu Biologicky inspirované algoritmy.
-Cílem je mít implementace testovacích funkcí pro optimalizaci a základní „blind search“ (slepé vyhledávání).
+Cílem je mít implementace testovacích funkcí pro optimalizaci, základní „blind search“ (slepé vyhledávání) a hill climbing algoritmus.
 
 https://michaelmachu.eu/data/pdf/bia/Exercise1.pdf
 
@@ -65,15 +65,6 @@ python "tests/hill_climbing_test.py"
 -    Funkce algoritmu může provádět i vizualizaci po předání visualize
 -    V každé iteraci vygeneruje sousedy, každého souseda posune pomocí náhodně generovaného stepu
 -    Pak porovná sousedy, zvolí nejlepšího (nejmenšího - protože minimalizační funkce) pro danou populaci. Uloží do path a pokračuje.
-
-Příklad (2D Sphere):
-
-```python
-from main import blind_search, sphere
-bounds = [(-5.12, 5.12)] * 2
-best_x, best_f = blind_search(sphere, bounds, npop=50, g_max=50, seed=123)
-print(best_x, best_f)
-```
 
 ## Poznámky
 
