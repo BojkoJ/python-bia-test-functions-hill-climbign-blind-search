@@ -12,6 +12,7 @@ https://michaelmachu.eu/data/pdf/bia/Exercise2.pdf
 -   `main.py` – modulové implementace funkcí a jednoduchý algoritmus blind search:
     -   Testovací funkce (minimizační): Sphere, Schwefel, Rosenbrock, Rastrigin, Griewank, Levy (základní), Michalewicz, Zakharov, Ackley
     -   Algoritmus: `blind_search(objective, bounds, npop, g_max, seed=None)`
+    -   Algoritmus: `def hill_climbing(objective, bounds, max_iter, step_sigma, neighbours, seed, early_stop_no_improve, visualize, pause_seconds, num_points, surface_alpha)`
 -   `tests/` – testy (každá funkce má vlastní soubor `*_test.py`).
 
 ## Jak spustit testy (Windows / PowerShell)
